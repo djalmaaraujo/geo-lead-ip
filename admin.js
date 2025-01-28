@@ -3,10 +3,12 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const crypto = require("crypto");
+const { exec } = require("child_process");
+const config = require("./config");
 
 // Configuration
 const DB_PATH = path.join(__dirname, "rate-limits.db");
-const DEFAULT_RATE_LIMIT = 2; // Should match server.js RATE_LIMIT
+const MMDB_PATH = path.join(__dirname, "location_sample.mmdb");
 
 // Initialize database connection
 const db = new sqlite3.Database(DB_PATH, (err) => {
@@ -23,6 +25,74 @@ const generateApiKey = () => {
 
 // Command handlers
 const commands = {
+  // Get sample IPs from database
+  sample: async () => {
+    // Sample IPs to test
+    const testIPs = [
+      "1.1.1.1",
+      "8.8.8.8",
+      "208.67.222.222",
+      "142.250.180.238", // google.com
+      "104.16.132.229", // cloudflare.com
+      "205.251.242.103", // amazon.com
+      "2001:4860:4860::8888", // Google DNS IPv6
+    ];
+
+    console.log("\nTesting sample IPs from database...\n");
+
+    for (const ip of testIPs) {
+      try {
+        const result = await new Promise((resolve, reject) => {
+          exec(
+            `mmdbinspect -db ${MMDB_PATH} "${ip}"`,
+            (error, stdout, stderr) => {
+              if (error) {
+                reject(error);
+                return;
+              }
+              try {
+                const data = JSON.parse(stdout);
+                resolve({ ip, data });
+              } catch (parseError) {
+                reject(parseError);
+              }
+            }
+          );
+        });
+
+        if (
+          result.data &&
+          result.data.length > 0 &&
+          result.data[0].Records &&
+          result.data[0].Records.length > 0
+        ) {
+          console.log(`✅ ${result.ip}:`);
+          console.log(
+            "   City:",
+            result.data[0].Records[0].Record.city?.names?.en || "N/A"
+          );
+          console.log(
+            "   Country:",
+            result.data[0].Records[0].Record.country?.names?.en || "N/A"
+          );
+          console.log("");
+        } else {
+          console.log(`❌ ${result.ip}: No data found\n`);
+        }
+      } catch (error) {
+        console.log(`❌ ${ip}: Error - ${error.message}\n`);
+      }
+    }
+
+    console.log("\nTo query these IPs, use:");
+    console.log(
+      'curl -H "api-key: YOUR_KEY" "http://localhost:3000/look?ip=IP_ADDRESS"\n'
+    );
+    console.log(
+      "Replace YOUR_KEY with your API key and IP_ADDRESS with one of the working IPs above.\n"
+    );
+  },
+
   // Create new API key
   new: async (args) => {
     if (args.length < 1) {
@@ -31,7 +101,7 @@ const commands = {
     }
 
     const name = args[0];
-    const rateLimit = parseInt(args[1]) || DEFAULT_RATE_LIMIT;
+    const rateLimit = parseInt(args[1]) || config.RATE_LIMIT;
     const apiKey = generateApiKey();
     const now = Date.now();
 
@@ -154,7 +224,7 @@ const main = async () => {
   const args = process.argv.slice(3);
 
   if (!command || !commands[command]) {
-    console.error("Available commands: new, update");
+    console.error("Available commands: new, update, sample");
     process.exit(1);
   }
 

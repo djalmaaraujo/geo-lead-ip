@@ -2,12 +2,25 @@ const express = require("express");
 const { exec } = require("child_process");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
+const net = require("net"); // For IP validation
+const fs = require("fs");
+const config = require("./config");
 const app = express();
 
 // Configuration
-const RATE_LIMIT = 2; // requests per 12 hours
-const RATE_LIMIT_WINDOW = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 const DB_PATH = path.join(__dirname, "rate-limits.db");
+
+// Check database content on startup
+const dbPath = path.join(__dirname, "location_sample.mmdb");
+console.log("Checking database file:", dbPath);
+
+if (!fs.existsSync(dbPath)) {
+  console.error("\nError: Database file not found!");
+  console.error(
+    "Please download the DB-IP City Lite database and save it as 'location_sample.mmdb'\n"
+  );
+  process.exit(1);
+}
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -37,7 +50,7 @@ setInterval(() => {
   const now = Date.now();
   db.run(
     "DELETE FROM rate_limits WHERE ? - timestamp > ?",
-    [now, RATE_LIMIT_WINDOW],
+    [now, config.RATE_LIMIT_WINDOW],
     (err) => {
       if (err) {
         console.error("Error cleaning up rate limits:", err);
@@ -62,7 +75,7 @@ const rateLimit = (req, res, next) => {
     db.run("DELETE FROM rate_limits WHERE api_key = ? AND ? - timestamp > ?", [
       apiKey,
       now,
-      RATE_LIMIT_WINDOW,
+      config.RATE_LIMIT_WINDOW,
     ]);
 
     // Get current rate limit data
@@ -83,7 +96,7 @@ const rateLimit = (req, res, next) => {
         if (row.count >= row.rate_limit) {
           return res.status(429).json({
             error: "Rate limit exceeded",
-            resetTime: new Date(row.timestamp + RATE_LIMIT_WINDOW),
+            resetTime: new Date(row.timestamp + config.RATE_LIMIT_WINDOW),
           });
         }
 
@@ -100,7 +113,7 @@ const rateLimit = (req, res, next) => {
         );
         res.setHeader(
           "X-RateLimit-Reset",
-          new Date(row.timestamp + RATE_LIMIT_WINDOW)
+          new Date(row.timestamp + config.RATE_LIMIT_WINDOW)
         );
 
         next();
@@ -109,31 +122,66 @@ const rateLimit = (req, res, next) => {
   });
 };
 
+// Helper function to validate IP address
+const isValidIP = (ip) => {
+  return net.isIP(ip) !== 0; // Returns true for both IPv4 and IPv6
+};
+
 // Helper function to get client IP
 const getClientIP = (req) => {
-  return (
+  let ip =
     req.headers["x-forwarded-for"]?.split(",")[0].trim() ||
-    req.socket.remoteAddress
-  );
+    req.socket.remoteAddress;
+
+  // Convert IPv6 localhost to IPv4 localhost
+  if (ip === "::1" || ip === "::ffff:127.0.0.1") {
+    ip = "127.0.0.1";
+  }
+
+  // Remove IPv6 prefix if present
+  if (ip.startsWith("::ffff:")) {
+    ip = ip.substring(7);
+  }
+
+  return ip;
 };
 
 // Route for IP lookup with rate limiting
 app.get("/look", rateLimit, (req, res) => {
-  const clientIP = getClientIP(req);
-  console.log(`Client IP: ${clientIP}`);
+  // Check if IP parameter is provided and valid
+  const ipToLookup = req.query.ip
+    ? decodeURIComponent(req.query.ip.trim())
+    : null;
+  let clientIP;
+
+  if (ipToLookup) {
+    if (!isValidIP(ipToLookup)) {
+      return res.status(400).json({ error: "Invalid IP address provided" });
+    }
+    clientIP = ipToLookup;
+  } else {
+    clientIP = getClientIP(req);
+  }
 
   // Execute mmdbinspect command
   exec(
-    `mmdbinspect -db location_sample.mmdb ${clientIP}`,
+    `mmdbinspect -db "${path.join(
+      __dirname,
+      "location_sample.mmdb"
+    )}" "${clientIP}"`,
     (error, stdout, stderr) => {
       if (error) {
         console.error(`Error executing mmdbinspect: ${error}`);
+        console.error(`stderr: ${stderr}`);
         return res.status(500).json({ error: "Error processing GeoIP lookup" });
       }
 
       try {
         // Parse the command output as JSON
         const geoData = JSON.parse(stdout);
+        if (!geoData[0].Records) {
+          return res.status(404).json({ error: "No data found for this IP" });
+        }
         res.json(geoData);
       } catch (parseError) {
         console.error(`Error parsing mmdbinspect output: ${parseError}`);
