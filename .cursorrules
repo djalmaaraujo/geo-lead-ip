@@ -40,3 +40,7 @@ The assistant will provide:
 - Proactive identification of potential issues
 - Clear rationale for architectural decisions
   </communication_style>
+
+<shortcuts>
+- When say "gocommmit", show me add git add, commit and push commands with a good message
+</shortcuts>

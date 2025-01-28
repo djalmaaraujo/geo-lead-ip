@@ -6,8 +6,36 @@ A Node.js API service for GeoIP lookups with rate limiting and API key authentic
 
 - Node.js v18.19.0 (use nvm to switch versions)
 - SQLite3
-- MaxMind's mmdbinspect tool
+- MaxMind's mmdbinspect tool (GeoIP database inspector)
 - MaxMind GeoIP database file (location_sample.mmdb)
+
+### Installing mmdbinspect
+
+mmdbinspect is required to read and parse MaxMind's GeoIP database files.
+
+**macOS (using Homebrew):**
+
+```bash
+brew install mmdbinspect
+```
+
+**Linux (from source):**
+
+```bash
+go install github.com/maxmind/mmdbinspect@latest
+```
+
+Note: Requires Go 1.17 or later
+
+**Windows:**
+
+```bash
+# Using scoop
+scoop install mmdbinspect
+
+# Or download the binary from GitHub releases:
+# https://github.com/maxmind/mmdbinspect/releases
+```
 
 ## Installation
 
