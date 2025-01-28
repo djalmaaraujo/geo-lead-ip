@@ -74,14 +74,36 @@ npm install
 2. Create SQLite database:
 
 ```bash
-sqlite3 rate-limits.db < schema.sql
+# Initialize database and create tables
+./admin setup
+# This will:
+# - Create the SQLite database
+# - Set up required tables
+# - Create a sample API key for testing
+# - Display the API key details
+
+# Or reset existing database
+./admin reset   # Delete existing database
+./admin setup   # Create new database
 ```
+
+> **Note**: The setup command automatically creates a sample API key with default rate limits. You can use this key immediately to test the API, or create additional keys using the commands below.
 
 3. Place your MaxMind database file as `location_sample.mmdb` in project root
 
 ## API Key Management
 
 The project includes a CLI tool for managing API keys:
+
+### Available Commands
+
+```bash
+./admin setup   # Initialize database and create sample API key
+./admin reset   # Delete existing database
+./admin new     # Create new API key
+./admin update  # Update existing API key
+./admin sample  # Test sample IP addresses
+```
 
 ### Create API Key
 
@@ -113,6 +135,77 @@ curl -H "api-key: your-api-key" http://localhost:3000/look
 
 # Show response headers (including rate limits)
 curl -i -H "api-key: your-api-key" http://localhost:3000/look
+```
+
+### Example Response
+
+```bash
+curl -H "api-key: your-key" "http://localhost:3000/look?ip=168.196.41.80"
+```
+
+```json
+[
+  {
+    "Database": "location_sample.mmdb",
+    "Records": [
+      {
+        "Network": "168.196.41.80/26",
+        "Record": {
+          "city": {
+            "names": {
+              "en": "Paulista"
+            }
+          },
+          "continent": {
+            "code": "SA",
+            "geoname_id": 6255150,
+            "names": {
+              "de": "Südamerika",
+              "en": "South America",
+              "es": "Sudamérica",
+              "fa": "امریکای جنوبی",
+              "fr": "Amérique Du Sud",
+              "ja": "南アメリカ大陸",
+              "ko": "남아메리카",
+              "pt-BR": "América Do Sul",
+              "ru": "Южная Америка",
+              "zh-CN": "南美洲"
+            }
+          },
+          "country": {
+            "geoname_id": 3469034,
+            "is_in_european_union": false,
+            "iso_code": "BR",
+            "names": {
+              "de": "Brasilien",
+              "en": "Brazil",
+              "es": "Brasil",
+              "fa": "برزیل",
+              "fr": "Brésil",
+              "ja": "ブラジル",
+              "ko": "브라질",
+              "pt-BR": "Brasil",
+              "ru": "Бразилия",
+              "zh-CN": "巴西"
+            }
+          },
+          "location": {
+            "latitude": -7.94083,
+            "longitude": -34.8731
+          },
+          "subdivisions": [
+            {
+              "names": {
+                "en": "Pernambuco"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "Lookup": "168.196.41.80"
+  }
+]
 ```
 
 ### HTTP Status Codes
