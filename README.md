@@ -27,6 +27,14 @@ This project was built with the assistance of Cursor Editor AI. To understand ho
 
 This project uses the free DB-IP City Lite database, which is a subset of their commercial database with reduced coverage and accuracy.
 
+You can either let the setup command download the database automatically:
+
+```bash
+./admin setup  # Downloads and extracts the latest DB-IP City Lite database
+```
+
+Or download it manually:
+
 1. Visit [DB-IP City Lite Download Page](https://db-ip.com/db/download/ip-to-city-lite)
 2. Select MMDB format
 3. Accept the Creative Commons Attribution License
@@ -79,6 +87,7 @@ npm install
 # This will:
 # - Create the SQLite database
 # - Set up required tables
+# - Download and extract the latest GeoIP database
 # - Create a sample API key for testing
 # - Display the API key details
 
@@ -87,9 +96,12 @@ npm install
 ./admin setup   # Create new database
 ```
 
-> **Note**: The setup command automatically creates a sample API key with default rate limits. You can use this key immediately to test the API, or create additional keys using the commands below.
-
-3. Place your MaxMind database file as `location_sample.mmdb` in project root
+> **Note**: The setup command handles everything automatically:
+>
+> - Creates a sample API key with default rate limits
+> - Downloads and extracts the latest GeoIP database
+> - Sets up the SQLite database
+>   You can use the generated API key immediately to test the API, or create additional keys using the commands below.
 
 ## API Key Management
 
