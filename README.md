@@ -115,6 +115,27 @@ curl -H "api-key: your-api-key" http://localhost:3000/look
 curl -i -H "api-key: your-api-key" http://localhost:3000/look
 ```
 
+### HTTP Status Codes
+
+The API returns the following status codes:
+
+- `200 OK`: Successful request with GeoIP data
+- `400 Bad Request`: Invalid IP address provided in query parameter
+- `401 Unauthorized`: Missing or invalid API key
+- `404 Not Found`: No GeoIP data found for the provided IP
+- `429 Too Many Requests`: Rate limit exceeded for the API key
+- `500 Internal Server Error`: Server error or database issues
+
+Example error responses:
+
+```json
+// 401 Unauthorized
+{"error": "API key required"}
+
+// 429 Too Many Requests
+{"error": "Rate limit exceeded", "resetTime": "2024-03-15T12:00:00.000Z"}
+```
+
 ## Rate Limiting
 
 Each API key has its own rate limit. The API returns these headers:
