@@ -53,13 +53,12 @@ mmdbinspect is required to read and parse MaxMind's GeoIP database files.
 brew install mmdbinspect
 ```
 
-**Linux (from source):**
+**Linux (Ubuntu):**
 
 ```bash
-go install github.com/maxmind/mmdbinspect@latest
+wget https://github.com/maxmind/mmdbinspect/releases/download/v0.2.0/mmdbinspect_0.2.0_linux_amd64.deb
+dpkg -i mmdbinspect_0.2.0_linux_amd64.deb
 ```
-
-Note: Requires Go 1.17 or later
 
 **Windows:**
 
@@ -140,14 +139,20 @@ The project includes a CLI tool for managing API keys:
 
 ## Using the API
 
-Make requests including your API key in headers:
+Make requests including your API key in headers or query parameters:
 
 ```bash
-# Basic request
+# Using headers
 curl -H "api-key: your-api-key" http://localhost:3000/look
 
-# Show response headers (including rate limits)
-curl -i -H "api-key: your-api-key" http://localhost:3000/look
+# Using query parameter
+curl "http://localhost:3000/look?api_key=your-api-key"
+
+# Combined with IP lookup
+curl "http://localhost:3000/look?api_key=your-api-key&ip=1.1.1.1"
+
+# Show response headers
+curl -i "http://localhost:3000/look?api_key=your-api-key"
 ```
 
 ### Example Response

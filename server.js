@@ -61,10 +61,16 @@ setInterval(() => {
 
 // Rate limit middleware
 const rateLimit = (req, res, next) => {
-  const apiKey = req.headers["api-key"];
+  // Check for API key in headers or query parameters
+  const apiKey = req.headers["api-key"] || req.query.api_key;
 
   if (!apiKey) {
-    return res.status(401).json({ error: "API key required" });
+    return res
+      .status(401)
+      .json({
+        error:
+          "API key required (use header 'api-key' or query parameter 'api_key')",
+      });
   }
 
   const now = Date.now();
