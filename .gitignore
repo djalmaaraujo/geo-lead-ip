@@ -1,0 +1,18 @@
+# Node modules
+node_modules/
+
+# Rate limit storage
+rate-limits.json
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# MaxMind DB files
+*.mmdb
+
+# IDE specific files
+.idea/
+.vscode/ 

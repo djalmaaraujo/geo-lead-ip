@@ -1,0 +1,12 @@
+{
+  "name": "geoip-api",
+  "version": "1.0.0",
+  "description": "GeoIP lookup API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
