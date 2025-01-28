@@ -2,12 +2,26 @@
 
 A Node.js API service for GeoIP lookups with rate limiting and API key authentication.
 
+> **Note**: This is a test project created to explore Cursor Editor AI capabilities. It has no commercial intent and should not be used in production environments.
+
 ## Requirements
 
 - Node.js v18.19.0 (use nvm to switch versions)
 - SQLite3
 - MaxMind's mmdbinspect tool (GeoIP database inspector)
-- MaxMind GeoIP database file (location_sample.mmdb)
+- DB-IP City Lite MMDB database file
+
+### Getting the GeoIP Database
+
+This project uses the free DB-IP City Lite database, which is a subset of their commercial database with reduced coverage and accuracy.
+
+1. Visit [DB-IP City Lite Download Page](https://db-ip.com/db/download/ip-to-city-lite)
+2. Select MMDB format
+3. Accept the Creative Commons Attribution License
+4. Download the database file
+5. Rename it to `location_sample.mmdb` and place in project root
+
+Note: The Lite database is updated monthly and includes basic geolocation data like city, country, and coordinates. For production use, consider their commercial database with better accuracy and daily updates.
 
 ### Installing mmdbinspect
 
