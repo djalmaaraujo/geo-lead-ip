@@ -2,7 +2,15 @@
 
 A Node.js API service for GeoIP lookups with rate limiting and API key authentication.
 
-> **Note**: This is a test project created to explore Cursor Editor AI capabilities. It has no commercial intent and should not be used in production environments.
+## Development History
+
+This project was built with the assistance of Cursor Editor AI. To understand how the application was developed step by step, check out the [development-log.md](development-log.md) file. The log includes:
+
+- Detailed progression of features
+- Technical decisions and rationale
+- Implementation steps
+- Project structure evolution
+- Key architectural choices
 
 ## Requirements
 
