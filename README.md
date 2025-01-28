@@ -103,6 +103,7 @@ The project includes a CLI tool for managing API keys:
 ./admin new     # Create new API key
 ./admin update  # Update existing API key
 ./admin sample  # Test sample IP addresses
+./admin look    # Test API with key and IP
 ```
 
 ### Create API Key
@@ -236,3 +237,13 @@ Each API key has its own rate limit. The API returns these headers:
 - X-RateLimit-Limit: Total requests allowed
 - X-RateLimit-Remaining: Remaining requests
 - X-RateLimit-Reset: Reset time
+
+### Test API
+
+```bash
+# Test with API key (uses requester's IP)
+./admin look <api_key>
+
+# Test with specific IP
+./admin look <api_key> 1.1.1.1
+```

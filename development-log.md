@@ -49,6 +49,31 @@ This document chronicles the step-by-step development of the GeoIP API project, 
 2. Added sample command for testing IPs
 3. Implemented proper error handling
 4. Added formatted console output
+5. Added setup command with automatic database initialization
+6. Added reset command to clean up database and files
+7. Added look command for easy API testing
+8. Implemented automatic MMDB file download and extraction
+
+## Additional Features
+
+1. Automatic GeoIP Database Management
+
+   - Download latest DB-IP City Lite database
+   - Extract .gz file automatically
+   - Handle monthly database updates
+
+2. Enhanced Testing Tools
+
+   - Added look command for quick API testing
+   - Display rate limit headers
+   - Pretty-print JSON responses
+   - Support both IP lookup modes
+
+3. Improved Setup Process
+   - Combined database and MMDB setup
+   - Added reset functionality
+   - Better error handling
+   - Clear success/error messages
 
 ## Documentation
 
