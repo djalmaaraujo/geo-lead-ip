@@ -1,8 +1,8 @@
 # Node modules
 node_modules/
 
-# Rate limit storage
-rate-limits.json
+# SQLite database
+*.db
 
 # Environment variables
 .env

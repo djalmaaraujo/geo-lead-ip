@@ -1,48 +1,50 @@
 const express = require("express");
 const { exec } = require("child_process");
-const fs = require("fs");
+const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const app = express();
 
 // Configuration
 const RATE_LIMIT = 2; // requests per 12 hours
 const RATE_LIMIT_WINDOW = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
-const STORAGE_FILE = path.join(__dirname, "rate-limits.json");
+const DB_PATH = path.join(__dirname, "rate-limits.db");
 
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-// Initialize or load rate limit data
-let rateLimitData = {};
-try {
-  if (fs.existsSync(STORAGE_FILE)) {
-    rateLimitData = JSON.parse(fs.readFileSync(STORAGE_FILE, "utf8"));
+// Initialize SQLite database
+const db = new sqlite3.Database(DB_PATH, (err) => {
+  if (err) {
+    console.error("Error opening database:", err);
+    process.exit(1);
   }
-} catch (error) {
-  console.error("Error loading rate limit data:", error);
-}
 
-// Save rate limit data to file
-const saveRateLimitData = () => {
-  fs.writeFileSync(STORAGE_FILE, JSON.stringify(rateLimitData), "utf8");
-};
+  // Create rate limits table if it doesn't exist
+  db.run(`
+    CREATE TABLE IF NOT EXISTS rate_limits (
+      api_key TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      count INTEGER NOT NULL DEFAULT 0,
+      timestamp INTEGER NOT NULL,
+      rate_limit INTEGER NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000)
+    )
+  `);
+});
 
 // Clean up expired entries every hour
 setInterval(() => {
   const now = Date.now();
-  let changed = false;
-
-  Object.keys(rateLimitData).forEach((key) => {
-    if (now - rateLimitData[key].timestamp > RATE_LIMIT_WINDOW) {
-      delete rateLimitData[key];
-      changed = true;
+  db.run(
+    "DELETE FROM rate_limits WHERE ? - timestamp > ?",
+    [now, RATE_LIMIT_WINDOW],
+    (err) => {
+      if (err) {
+        console.error("Error cleaning up rate limits:", err);
+      }
     }
-  });
-
-  if (changed) {
-    saveRateLimitData();
-  }
-}, 60 * 60 * 1000); // Run every hour
+  );
+}, 60 * 60 * 1000);
 
 // Rate limit middleware
 const rateLimit = (req, res, next) => {
@@ -54,46 +56,57 @@ const rateLimit = (req, res, next) => {
 
   const now = Date.now();
 
-  // Clean up expired entry for this API key
-  if (
-    rateLimitData[apiKey] &&
-    now - rateLimitData[apiKey].timestamp > RATE_LIMIT_WINDOW
-  ) {
-    delete rateLimitData[apiKey];
-  }
+  // Use transaction to ensure atomic operations
+  db.serialize(() => {
+    // Clean up expired entry for this API key
+    db.run("DELETE FROM rate_limits WHERE api_key = ? AND ? - timestamp > ?", [
+      apiKey,
+      now,
+      RATE_LIMIT_WINDOW,
+    ]);
 
-  // Initialize or update rate limit data for this API key
-  if (!rateLimitData[apiKey]) {
-    rateLimitData[apiKey] = {
-      count: 0,
-      timestamp: now,
-    };
-  }
+    // Get current rate limit data
+    db.get(
+      "SELECT count, timestamp, rate_limit, name FROM rate_limits WHERE api_key = ?",
+      [apiKey],
+      (err, row) => {
+        if (err) {
+          console.error("Database error:", err);
+          return res.status(500).json({ error: "Internal server error" });
+        }
 
-  // Check rate limit
-  if (rateLimitData[apiKey].count >= RATE_LIMIT) {
-    return res.status(429).json({
-      error: "Rate limit exceeded",
-      resetTime: new Date(rateLimitData[apiKey].timestamp + RATE_LIMIT_WINDOW),
-    });
-  }
+        if (!row) {
+          return res.status(401).json({ error: "Invalid API key" });
+        }
 
-  // Increment counter
-  rateLimitData[apiKey].count++;
-  saveRateLimitData();
+        // Check rate limit
+        if (row.count >= row.rate_limit) {
+          return res.status(429).json({
+            error: "Rate limit exceeded",
+            resetTime: new Date(row.timestamp + RATE_LIMIT_WINDOW),
+          });
+        }
 
-  // Add rate limit info to response headers
-  res.setHeader("X-RateLimit-Limit", RATE_LIMIT);
-  res.setHeader(
-    "X-RateLimit-Remaining",
-    RATE_LIMIT - rateLimitData[apiKey].count
-  );
-  res.setHeader(
-    "X-RateLimit-Reset",
-    new Date(rateLimitData[apiKey].timestamp + RATE_LIMIT_WINDOW)
-  );
+        // Increment counter
+        db.run("UPDATE rate_limits SET count = count + 1 WHERE api_key = ?", [
+          apiKey,
+        ]);
 
-  next();
+        // Set rate limit headers
+        res.setHeader("X-RateLimit-Limit", row.rate_limit);
+        res.setHeader(
+          "X-RateLimit-Remaining",
+          row.rate_limit - (row.count + 1)
+        );
+        res.setHeader(
+          "X-RateLimit-Reset",
+          new Date(row.timestamp + RATE_LIMIT_WINDOW)
+        );
+
+        next();
+      }
+    );
+  });
 };
 
 // Helper function to get client IP
@@ -128,6 +141,16 @@ app.get("/look", rateLimit, (req, res) => {
       }
     }
   );
+});
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  db.close((err) => {
+    if (err) {
+      console.error("Error closing database:", err);
+    }
+    process.exit(err ? 1 : 0);
+  });
 });
 
 // Start server
