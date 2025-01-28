@@ -12,6 +12,8 @@ This project was built with the assistance of Cursor Editor AI. To understand ho
 - Project structure evolution
 - Key architectural choices
 
+> **Development Time**: The entire application was built in less than one hour! This includes all features, CLI tools, and documentation. The development could have been even faster with a clear plan from the start, but part of this hour involved learning and iterating on ideas as they emerged. This showcases the power of AI-assisted development in rapidly prototyping and implementing complete applications.
+
 ## Requirements
 
 - Node.js v18.19.0 (use nvm to switch versions)
